@@ -40,12 +40,6 @@ const FashionSlider = [
     subIcon: "fal fa-watch",
     thumb: "/images/product/product-46.png",
   },
-  {
-    title: "Delux Brand Watch",
-    subTitle: "Smartwatch",
-    subIcon: "fal fa-watch",
-    thumb: "/images/product/product-41.png",
-  },
 ];
 
 const FashionSliderProduct = {
