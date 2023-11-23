@@ -2956,6 +2956,7 @@ const ProductsData = [
     id: 412,
     title: "Built in bra and Leggings Swim Romper",
     thumbnailTransparent: true,
+    sizeAttribute: ["XL", "L", "M", "S", "XS"],
     colorAttribute: [
       {
         color: "orange",
