@@ -9,26 +9,26 @@ import SplashSupport from "@/components/splash/SplashSupport";
 import HomeFashion from "./home/fashion/page";
 
 export const metadata = {
-	title: 'eTrade Multipurpose eCommerce Next JS Template',
-  description: 'eTrade Multipurpose eCommerce Nextjs Template',
-}
+  title: "Lngoude",
+  description: "Shop Smart, Live Stylish.",
+};
 
 const HomeOne = () => {
-  return ( 
+  return (
     <>
-	{/* <SplashHeader /> */}
-	<main className="main-wrapper pv-main-wrapper">
-		{/* <SplashBanner /> */}
-		<HomeFashion/>
-		{/* <SplashHomeDemo /> */}
-		{/* <SplashInnerDemo /> */}
-		{/* <SplashFeatures /> */}
-		{/* <SplashSupport /> */}
-		{/* <SplashCta /> */}
-	</main>
-	{/* <SplashFooter /> */}
+      {/* <SplashHeader /> */}
+      <main className="main-wrapper pv-main-wrapper">
+        {/* <SplashBanner /> */}
+        <HomeFashion />
+        {/* <SplashHomeDemo /> */}
+        {/* <SplashInnerDemo /> */}
+        {/* <SplashFeatures /> */}
+        {/* <SplashSupport /> */}
+        {/* <SplashCta /> */}
+      </main>
+      {/* <SplashFooter /> */}
     </>
-   );
-}
- 
+  );
+};
+
 export default HomeOne;
